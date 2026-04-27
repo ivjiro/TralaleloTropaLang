@@ -145,6 +145,29 @@
     .chart-sub { font-size: 10px; color: var(--muted); margin-bottom: 16px; }
     canvas { display: block; width: 100% !important; }
 
+    /* ── Scatter filter slider ── */
+    .scatter-filter {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; color: var(--muted); margin-bottom: 10px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; flex-wrap: wrap;
+    }
+    .scatter-filter label { white-space: nowrap; }
+    .scatter-filter .filter-range { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 160px; }
+    .scatter-filter input[type="range"] {
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 4px; background: var(--dim); border-radius: 99px; outline: none;
+      border: none; padding: 0;
+    }
+    .scatter-filter input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      background: var(--accent3); border-radius: 50%; cursor: pointer;
+      border: 2px solid var(--bg); transition: transform .1s;
+    }
+    .scatter-filter input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    .scatter-filter .filter-val { color: var(--accent3); font-weight: 500; min-width: 28px; text-align: right; }
+    .scatter-filter .filter-sep { color: var(--dim); }
+
     /* ── Scatter controls ── */
     .scatter-controls {
       display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;
@@ -199,7 +222,7 @@
 
 <header class="site-header">
   <h1>BD Student <span>Performance</span></h1>
-  <span class="pill">n=400 Sample · 2024</span>
+  <span class="pill">n=1000 · 2024</span>
   <nav class="nav-tabs">
     <button class="nav-tab active" onclick="showSection('data')">Dataset</button>
     <button class="nav-tab" onclick="showSection('charts')">Charts</button>
@@ -212,7 +235,7 @@
   <!-- ═══════ SECTION: DATA TABLE ══════════════════════════════════ -->
   <section id="sec-data" class="section active">
     <div class="section-label">Dataset</div>
-    <p class="section-desc">Exploring a random sample of 400 records drawn from 1,000 students. Click column headers to sort. - Student 1 (Ardiente)</p>
+    <p class="section-desc">Exploring all 1,000 student records. Click column headers to sort. - Student 1 (Ardiente)</p>
     <div class="stat-bar" id="statBar"></div>
     <div class="toolbar">
       <div class="search-wrap">
@@ -266,6 +289,21 @@
           </div>
         </div>
 
+        <!-- data range filter -->
+        <div class="scatter-filter">
+          <label>Filter by X range:</label>
+          <div class="filter-range">
+            <span class="filter-val" id="scatterMinVal">—</span>
+            <input type="range" id="scatterMinSlider" min="0" max="100" value="0" oninput="onScatterSlider()">
+          </div>
+          <span class="filter-sep">→</span>
+          <div class="filter-range">
+            <input type="range" id="scatterMaxSlider" min="0" max="100" value="100" oninput="onScatterSlider()">
+            <span class="filter-val" id="scatterMaxVal">—</span>
+          </div>
+          <span id="scatterFilterCount" style="color:var(--muted);font-size:10px;margin-left:4px;"></span>
+        </div>
+
         <!-- live correlation & regression info -->
         <div class="scatter-stat" id="scatterStats"></div>
 
@@ -283,7 +321,9 @@
       <div class="chart-card">
         <div class="chart-title">Grade Distribution</div>
         <div class="chart-sub">Students categorised by HSC grade band (A+, A, B, C)</div>
-        <canvas id="chartGradePie" height="220"></canvas>
+        <div style="max-width:300px;margin:0 auto;">
+          <canvas id="chartGradePie" height="260"></canvas>
+        </div>
       </div>
 
     </div>
@@ -1547,27 +1587,80 @@ function sLinReg(x, y) {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   SCATTER CHART — dynamic, with regression line
+   SCATTER CHART — dynamic, with regression line + range filter
 ════════════════════════════════════════════════════════════════ */
-function updateScatter() {
+let scatterXMin = null, scatterXMax = null; // raw data bounds for current X axis
+
+function initScatterSliders(xs) {
+  const minVal = Math.min(...xs);
+  const maxVal = Math.max(...xs);
+  scatterXMin = minVal;
+  scatterXMax = maxVal;
+
+  const minSlider = document.getElementById('scatterMinSlider');
+  const maxSlider = document.getElementById('scatterMaxSlider');
+  // Set slider range to match data precision
+  const isInt = xs.every(v => Number.isInteger(v));
+  const step  = isInt ? 1 : 0.01;
+  for (const sl of [minSlider, maxSlider]) {
+    sl.min  = minVal;
+    sl.max  = maxVal;
+    sl.step = step;
+  }
+  minSlider.value = minVal;
+  maxSlider.value = maxVal;
+  document.getElementById('scatterMinVal').textContent = minVal;
+  document.getElementById('scatterMaxVal').textContent = maxVal;
+  document.getElementById('scatterFilterCount').textContent = '';
+}
+
+function onScatterSlider() {
+  const minSlider = document.getElementById('scatterMinSlider');
+  const maxSlider = document.getElementById('scatterMaxSlider');
+  let lo = parseFloat(minSlider.value);
+  let hi = parseFloat(maxSlider.value);
+  // Clamp: keep min ≤ max
+  if (lo > hi) { lo = hi; minSlider.value = lo; }
+  document.getElementById('scatterMinVal').textContent = lo;
+  document.getElementById('scatterMaxVal').textContent = hi;
+  updateScatter(lo, hi);
+}
+
+function updateScatter(filterLo, filterHi) {
   const xKey = document.getElementById('scatterX').value;
   const yKey = document.getElementById('scatterY').value;
   if (!xKey || !yKey) return;
 
   // Pair-wise data (only rows where both values exist)
-  const pairs = originalData
+  let pairs = originalData
     .map(r => ({ x: r[xKey], y: r[yKey] }))
     .filter(p => typeof p.x === 'number' && typeof p.y === 'number' && !isNaN(p.x) && !isNaN(p.y));
 
   const xs = pairs.map(p => p.x);
-  const ys = pairs.map(p => p.y);
+
+  // If called from axis change (no filter args), re-init sliders
+  if (filterLo === undefined && filterHi === undefined) {
+    initScatterSliders(xs);
+    filterLo = Math.min(...xs);
+    filterHi = Math.max(...xs);
+  }
+
+  // Apply range filter
+  pairs = pairs.filter(p => p.x >= filterLo && p.x <= filterHi);
+
+  const filtXs = pairs.map(p => p.x);
+  const ys     = pairs.map(p => p.y);
+
+  // Update filter count label
+  document.getElementById('scatterFilterCount').textContent =
+    `${pairs.length} pts shown`;
 
   // Regression
-  const reg  = sLinReg(xs, ys);
+  const reg  = sLinReg(filtXs, ys);
   const r    = reg.r;
   const r2   = r * r;
-  const xMin = Math.min(...xs);
-  const xMax = Math.max(...xs);
+  const xMin = Math.min(...filtXs);
+  const xMax = Math.max(...filtXs);
   const regLine = [
     { x: xMin, y: reg.slope * xMin + reg.intercept },
     { x: xMax, y: reg.slope * xMax + reg.intercept }
@@ -1815,10 +1908,7 @@ function buildStats() {
 function init() {
   const allData = parseCSV(EMBEDDED_CSV);
 
-  // ── Random sample of 400 (without replacement, seeded shuffle) ──
-  const SAMPLE_SIZE = 400;
-  const shuffled = [...allData].sort(() => Math.random() - 0.5);
-  originalData = shuffled.slice(0, SAMPLE_SIZE);
+  originalData = allData;
   currentData  = [...originalData];
 
   // Detect numeric headers (needed for scatter dropdowns)
