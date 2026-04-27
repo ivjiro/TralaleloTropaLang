@@ -627,6 +627,51 @@
     currentPage = 1;
     renderTable();
   });
+
+  /* ═══════════════════════════════════════════════════════════════
+     STUDENT 3 (VILLAFLORES) — Statistical Analysis Engine
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── mean(arr) ────────────────────────────────────────────────────
+   Sums all values with reduce(), divides by count, rounds to 2dp.
+   Formula: μ = Σ(values) / n
+────────────────────────────────────────────────────────────────── */
+function mean(arr) {
+  const sum = arr.reduce((acc, val) => acc + val, 0);
+  return parseFloat((sum / arr.length).toFixed(2));
+}
+
+/* ── median(arr) ──────────────────────────────────────────────────
+   Sorts a copy of the array (never mutates original), picks the
+   middle value. Even-length arrays average the two center values.
+   Formula (odd): sorted[mid] | (even): (sorted[mid-1]+sorted[mid])/2
+────────────────────────────────────────────────────────────────── */
+function median(arr) {
+  const sorted = [...arr].sort((a, b) => a - b);
+  const n = sorted.length;
+  const mid = Math.floor(n / 2);
+  return parseFloat(
+    (n % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2).toFixed(2)
+  );
+}
+
+/* ── mode(arr) ────────────────────────────────────────────────────
+   Builds a frequency map {value: count}, finds the highest count,
+   returns all values that tie for it joined with " & ".
+────────────────────────────────────────────────────────────────── */
+function mode(arr) {
+  const freq = {};
+  for (const val of arr) {
+    freq[val] = (freq[val] || 0) + 1;
+  }
+  const maxCount = Math.max(...Object.values(freq));
+  const modes = Object.keys(freq)
+    .filter(k => freq[k] === maxCount)
+    .map(Number)
+    .sort((a, b) => a - b);
+  return modes.join(' & ');
+}
+
 </script>
 </body>
 </html>
