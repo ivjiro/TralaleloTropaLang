@@ -750,7 +750,78 @@ function linearRegression(x, y) {
   return { slope, intercept, rSquared };
 }
 
+/* ── renderStats(data) ────────────────────────────────────────────
+   Detects score column (/score/i) and hours column (/study|hours/i),
+   extracts numeric values, then writes to all stat DOM elements.
+   Hides #statsSection if no score column found.
+   Wrapped in try/catch so errors never break Student 1's table.
+────────────────────────────────────────────────────────────────── */
+function renderStats(data) {
+  try {
+    const keys     = Object.keys(data[0] || {});
+    const scoreKey = keys.find(k => /score/i.test(k));
+    const hoursKey = keys.find(k => /study|hours/i.test(k));
 
+    const scores = scoreKey
+      ? data.map(r => r[scoreKey]).filter(v => typeof v === 'number' && !isNaN(v))
+      : [];
+    const hours = hoursKey
+      ? data.map(r => r[hoursKey]).filter(v => typeof v === 'number' && !isNaN(v))
+      : [];
+
+    if (scores.length === 0) {
+      document.getElementById('statsSection').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('statsSection').style.display = '';
+    document.getElementById('statMean').textContent   = mean(scores);
+    document.getElementById('statMedian').textContent = median(scores);
+    document.getElementById('statStdDev').textContent = stdDev(scores);
+    document.getElementById('statMode').textContent   = mode(scores);
+
+    const minScore = Math.min(...scores);
+    const maxScore = Math.max(...scores);
+    document.getElementById('dCount').textContent    = scores.length;
+    document.getElementById('dMin').textContent      = minScore;
+    document.getElementById('dMax').textContent      = maxScore;
+    document.getElementById('dRange').textContent    = maxScore - minScore;
+    document.getElementById('dVariance').textContent = variance(scores);
+    document.getElementById('dStdDev').textContent   = stdDev(scores);
+
+    if (hours.length > 0 && hours.length === scores.length) {
+      const r   = pearsonCorr(hours, scores);
+      const reg = linearRegression(hours, scores);
+      document.getElementById('rPearson').textContent   = r;
+      document.getElementById('rInterp').textContent    = corrInterpretation(r);
+      document.getElementById('rSlope').textContent     = reg.slope;
+      document.getElementById('rIntercept').textContent = reg.intercept;
+      document.getElementById('rSquared').textContent   = reg.rSquared;
+      const sign         = reg.intercept >= 0 ? '+' : '-';
+      const absIntercept = Math.abs(reg.intercept);
+      document.getElementById('rEquation').textContent =
+        'score = ' + reg.slope + ' x hours ' + sign + ' ' + absIntercept;
+    } else {
+      ['rPearson','rInterp','rSlope','rIntercept','rSquared','rEquation']
+        .forEach(function(id) { document.getElementById(id).textContent = 'n/a'; });
+    }
+  } catch (err) {
+    console.error('Student 3: renderStats() error:', err);
+  }
+}
+
+/* ── hookRenderStats() IIFE ───────────────────────────────────────
+   Wraps Student 1's loadCSV() without editing their code.
+   Saves the original, replaces it with a function that calls the
+   original first, then calls renderStats(originalData).
+────────────────────────────────────────────────────────────────── */
+(function hookRenderStats() {
+  var _originalLoadCSV = loadCSV;
+  loadCSV = function(text) {
+    _originalLoadCSV(text);
+    renderStats(originalData);
+  };
+})();
 </script>
 </body>
 </html>
