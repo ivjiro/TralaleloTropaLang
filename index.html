@@ -703,6 +703,53 @@ function corrInterpretation(r) {
   return strength + ' ' + direction + ' Correlation';
 }
 
+/* ── pearsonCorr(x, y) ────────────────────────────────────────────
+   Returns r (−1 to +1): how linearly related two arrays are.
+   Accumulates cross-products and squared deviations in one loop.
+   Returns 0 if denominator is zero (prevents division by zero).
+   Formula: r = Σ(dx·dy) / √(Σdx² · Σdy²)
+────────────────────────────────────────────────────────────────── */
+function pearsonCorr(x, y) {
+  const n    = x.length;
+  const xBar = mean(x);
+  const yBar = mean(y);
+  let numerator = 0;
+  let sumSqX    = 0;
+  let sumSqY    = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = x[i] - xBar;
+    const dy = y[i] - yBar;
+    numerator += dx * dy;
+    sumSqX    += dx * dx;
+    sumSqY    += dy * dy;
+  }
+  const denominator = Math.sqrt(sumSqX * sumSqY);
+  if (denominator === 0) return 0;
+  return parseFloat((numerator / denominator).toFixed(4));
+}
+
+/* ── linearRegression(x, y) ──────────────────────────────────────
+   Returns { slope, intercept, rSquared } for the best-fit line y=mx+b.
+   Reuses pearsonCorr() to compute R² = r². Guards against sumSqX = 0.
+   Formula: m = Σ(dx·dy)/Σdx² | b = ȳ − m·x̄ | R² = r²
+────────────────────────────────────────────────────────────────── */
+function linearRegression(x, y) {
+  const xBar = mean(x);
+  const yBar = mean(y);
+  let numerator = 0;
+  let sumSqX    = 0;
+  for (let i = 0; i < x.length; i++) {
+    const dx = x[i] - xBar;
+    numerator += dx * (y[i] - yBar);
+    sumSqX    += dx * dx;
+  }
+  const slope     = parseFloat((sumSqX === 0 ? 0 : numerator / sumSqX).toFixed(4));
+  const intercept = parseFloat((yBar - slope * xBar).toFixed(4));
+  const r         = pearsonCorr(x, y);
+  const rSquared  = parseFloat((r * r).toFixed(4));
+  return { slope, intercept, rSquared };
+}
+
 
 </script>
 </body>
