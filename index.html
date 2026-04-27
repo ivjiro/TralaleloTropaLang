@@ -1832,7 +1832,12 @@ function init() {
 
   renderTable();
 
-  
+  document.getElementById('search').addEventListener('input', filterData);
+  document.getElementById('colFilter').addEventListener('change', filterData);
+  document.getElementById('rowCount').addEventListener('change', () => { currentPage = 1; renderTable(); });
+}
+
+init();
 </script>
 </body>
 </html>
