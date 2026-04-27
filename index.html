@@ -145,6 +145,38 @@
     .chart-sub { font-size: 10px; color: var(--muted); margin-bottom: 16px; }
     canvas { display: block; width: 100% !important; }
 
+    /* ── Bar chart filters ── */
+    .bar-filters {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .bar-filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .bar-filter-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; min-width: 52px; }
+    .bar-toggle-group { display: flex; gap: 4px; }
+    .bar-toggle {
+      font-family: var(--font-mono); font-size: 11px;
+      padding: 3px 10px; border-radius: 99px;
+      border: 1px solid var(--border2); background: transparent;
+      color: var(--muted); cursor: pointer; transition: all .12s;
+    }
+    .bar-toggle:hover { color: var(--text); background: var(--bg2); }
+    .bar-toggle.active { background: rgba(110,231,183,.15); color: var(--accent); border-color: rgba(110,231,183,.4); }
+    .bar-hsc-range {
+      display: flex; align-items: center; gap: 6px; flex: 1; flex-wrap: wrap;
+    }
+    .bar-range-val { font-size: 11px; color: var(--accent); font-weight: 500; min-width: 26px; }
+    .bar-hsc-range input[type="range"] {
+      flex: 1; min-width: 60px; -webkit-appearance: none; appearance: none;
+      height: 4px; background: var(--dim); border-radius: 99px; outline: none; border: none; padding: 0;
+    }
+    .bar-hsc-range input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 13px; height: 13px;
+      background: var(--accent); border-radius: 50%; cursor: pointer;
+      border: 2px solid var(--bg); transition: transform .1s;
+    }
+    .bar-hsc-range input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
     /* ── Scatter filter slider ── */
     .scatter-filter {
       display: flex; align-items: center; gap: 10px;
@@ -268,7 +300,39 @@
       <!-- Chart 1: Bar — avg HSC by Study Hours bracket -->
       <div class="chart-card">
         <div class="chart-title">Study Hours vs. HSC Result</div>
-        <div class="chart-sub">Average HSC score grouped by weekly study hours (5-hr brackets)</div>
+        <div class="chart-sub" id="barChartSub">Average HSC score grouped by weekly study hours (5-hr brackets)</div>
+
+        <!-- filters -->
+        <div class="bar-filters">
+          <div class="bar-filter-row">
+            <span class="bar-filter-label">Gender</span>
+            <div class="bar-toggle-group" id="barGenderGroup">
+              <button class="bar-toggle active" data-val="All">All</button>
+              <button class="bar-toggle" data-val="Male">Male</button>
+              <button class="bar-toggle" data-val="Female">Female</button>
+            </div>
+          </div>
+          <div class="bar-filter-row">
+            <span class="bar-filter-label">School</span>
+            <div class="bar-toggle-group" id="barSchoolGroup">
+              <button class="bar-toggle active" data-val="All">All</button>
+              <button class="bar-toggle" data-val="Public">Public</button>
+              <button class="bar-toggle" data-val="Private">Private</button>
+            </div>
+          </div>
+          <div class="bar-filter-row">
+            <span class="bar-filter-label">HSC range</span>
+            <div class="bar-hsc-range">
+              <span class="bar-range-val" id="barHscMin">3.0</span>
+              <input type="range" id="barHscMinSlider" min="3.0" max="5.0" step="0.1" value="3.0" oninput="onBarSlider()">
+              <span style="color:var(--dim)">–</span>
+              <input type="range" id="barHscMaxSlider" min="3.0" max="5.0" step="0.1" value="5.0" oninput="onBarSlider()">
+              <span class="bar-range-val" id="barHscMax">5.0</span>
+              <span id="barFilterCount" style="font-size:10px;color:var(--muted);margin-left:6px;"></span>
+            </div>
+          </div>
+        </div>
+
         <canvas id="chartStudyBar" height="220"></canvas>
       </div>
 
@@ -1742,6 +1806,75 @@ function updateScatter(filterLo, filterHi) {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   BAR CHART — Study Hours vs HSC, with filters
+════════════════════════════════════════════════════════════════ */
+let barChartInst = null;
+
+function onBarSlider() {
+  const minSl = document.getElementById('barHscMinSlider');
+  const maxSl = document.getElementById('barHscMaxSlider');
+  let lo = parseFloat(minSl.value);
+  let hi = parseFloat(maxSl.value);
+  if (lo > hi) { lo = hi; minSl.value = lo; }
+  document.getElementById('barHscMin').textContent = lo.toFixed(1);
+  document.getElementById('barHscMax').textContent = hi.toFixed(1);
+  updateBarChart();
+}
+
+function updateBarChart() {
+  const gender = document.querySelector('#barGenderGroup .bar-toggle.active')?.dataset.val || 'All';
+  const school = document.querySelector('#barSchoolGroup .bar-toggle.active')?.dataset.val || 'All';
+  const hscLo  = parseFloat(document.getElementById('barHscMinSlider')?.value ?? 3.0);
+  const hscHi  = parseFloat(document.getElementById('barHscMaxSlider')?.value ?? 5.0);
+
+  let subset = originalData.filter(r => {
+    if (gender !== 'All' && r.Gender !== gender) return false;
+    if (school !== 'All' && r.School_Type !== school) return false;
+    const h = r.HSC_Result;
+    if (typeof h === 'number' && (h < hscLo || h > hscHi)) return false;
+    return true;
+  });
+
+  document.getElementById('barFilterCount').textContent =
+    `${subset.length} students`;
+
+  // Build subtitle
+  const parts = [];
+  if (gender !== 'All') parts.push(gender);
+  if (school !== 'All') parts.push(school);
+  if (hscLo > 3.0 || hscHi < 5.0) parts.push(`HSC ${hscLo.toFixed(1)}–${hscHi.toFixed(1)}`);
+  document.getElementById('barChartSub').textContent =
+    parts.length
+      ? `Filtered: ${parts.join(' · ')} — avg HSC by study hours`
+      : 'Average HSC score grouped by weekly study hours (5-hr brackets)';
+
+  const hourBrackets = ['5–9', '10–14', '15–19', '20–24', '25–29'];
+  const hourRanges   = [[5,9], [10,14], [15,19], [20,24], [25,29]];
+  const hourAvgs = hourRanges.map(([lo, hi]) => {
+    const s = numVals(
+      subset.filter(r => r.Study_Hours_per_Week >= lo && r.Study_Hours_per_Week <= hi),
+      'HSC_Result'
+    );
+    return s.length ? +avg(s).toFixed(2) : null;
+  });
+
+  if (barChartInst) { barChartInst.destroy(); barChartInst = null; }
+
+  barChartInst = new Chart(document.getElementById('chartStudyBar'), mkConfig('bar',
+    { labels: hourBrackets,
+      datasets: [{ label: 'Avg HSC Result', data: hourAvgs,
+        backgroundColor: 'rgba(110,231,183,0.45)', borderColor: ACCENT,
+        borderWidth: 1, borderRadius: 5, borderSkipped: false }] },
+    { plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ctx.parsed.y != null ? `Avg: ${ctx.parsed.y}` : 'No data' } } },
+      scales: {
+        x: { title: { display: true, text: 'Study Hours / Week' } },
+        y: { min: 3.5, max: 5.0, title: { display: true, text: 'Avg HSC Result' } }
+      }}
+  ));
+}
+
+/* ════════════════════════════════════════════════════════════════
    BUILD CHARTS
 ════════════════════════════════════════════════════════════════ */
 function buildCharts() {
@@ -1760,27 +1893,24 @@ function buildCharts() {
   scatterXSel.value = defaultX;
   scatterYSel.value = defaultY;
 
-  /* ── Chart 1: Bar — Study Hours vs HSC ──────────────────── */
-  const hourBrackets = ['5–9', '10–14', '15–19', '20–24', '25–29'];
-  const hourRanges   = [[5,9], [10,14], [15,19], [20,24], [25,29]];
-  const hourAvgs = hourRanges.map(([lo, hi]) => {
-    const subset = numVals(
-      originalData.filter(r => r.Study_Hours_per_Week >= lo && r.Study_Hours_per_Week <= hi),
-      'HSC_Result'
-    );
-    return subset.length ? +avg(subset).toFixed(2) : 0;
+  /* ── Chart 1: Bar — Study Hours vs HSC (dynamic) ────────── */
+  updateBarChart();
+
+  // Wire up toggle buttons
+  document.querySelectorAll('#barGenderGroup .bar-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#barGenderGroup .bar-toggle').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateBarChart();
+    });
   });
-  new Chart(document.getElementById('chartStudyBar'), mkConfig('bar',
-    { labels: hourBrackets,
-      datasets: [{ label: 'Avg HSC Result', data: hourAvgs,
-        backgroundColor: 'rgba(110,231,183,0.45)', borderColor: ACCENT,
-        borderWidth: 1, borderRadius: 5, borderSkipped: false }] },
-    { plugins: { legend: { display: false } },
-      scales: {
-        x: { title: { display: true, text: 'Study Hours / Week' } },
-        y: { min: 3.5, max: 5.0, title: { display: true, text: 'Avg HSC Result' } }
-      }}
-  ));
+  document.querySelectorAll('#barSchoolGroup .bar-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#barSchoolGroup .bar-toggle').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateBarChart();
+    });
+  });
 
   /* ── Chart 2: Scatter — draw with defaults ───────────────── */
   updateScatter();
