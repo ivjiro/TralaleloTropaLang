@@ -484,7 +484,42 @@
     initColFilter();
     renderTable();
   }
+// ── File input ─────────────────────────────────────────────
+  document.getElementById('fileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => loadCSV(ev.target.result);
+    reader.readAsText(file);
+  });
 
+  // ── Drag & drop ────────────────────────────────────────────
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => {
+    e.preventDefault();
+    dz.style.background = 'var(--color-bg-secondary)';
+  });
+  dz.addEventListener('dragleave', () => {
+    dz.style.background = '';
+  });
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.style.background = '';
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.csv')) {
+      const reader = new FileReader();
+      reader.onload = ev => loadCSV(ev.target.result);
+      reader.readAsText(file);
+    }
+  });
+
+  // ── Event listeners ────────────────────────────────────────
+  document.getElementById('search').addEventListener('input', filterData);
+  document.getElementById('colFilter').addEventListener('change', filterData);
+  document.getElementById('rowCount').addEventListener('change', () => {
+    currentPage = 1;
+    renderTable();
+  });
 </script>
 </body>
 </html>
