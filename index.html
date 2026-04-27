@@ -463,6 +463,28 @@
 
     renderTable();
   }
+ // ── Init column filter dropdown ────────────────────────────
+  function initColFilter() {
+    document.getElementById('colFilter').innerHTML =
+      '<option value="">All columns</option>' +
+      headers.map(h => `<option value="${h}">${h}</option>`).join('');
+  }
+
+  // ── Load CSV ───────────────────────────────────────────────
+  function loadCSV(text) {
+    originalData = parseCSV(text);
+    currentData  = [...originalData];
+    sortKey      = null;
+    sortDir      = 1;
+    currentPage  = 1;
+
+    document.getElementById('dropZone').style.display     = 'none';
+    document.getElementById('viewerSection').style.display = '';
+
+    initColFilter();
+    renderTable();
+  }
+
 </script>
 </body>
 </html>
