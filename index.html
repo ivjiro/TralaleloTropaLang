@@ -672,6 +672,38 @@ function mode(arr) {
   return modes.join(' & ');
 }
 
+/* ── variance(arr) ────────────────────────────────────────────────
+   Reuses mean(), squares each deviation so negatives don't cancel,
+   then averages the squared differences. Formula: σ² = Σ(xi−μ)² / n
+────────────────────────────────────────────────────────────────── */
+function variance(arr) {
+  const mu = mean(arr);
+  const squaredDiffs = arr.map(x => (x - mu) ** 2);
+  const sumOfSquares = squaredDiffs.reduce((acc, val) => acc + val, 0);
+  return parseFloat((sumOfSquares / arr.length).toFixed(2));
+}
+
+/* ── stdDev(arr) ──────────────────────────────────────────────────
+   Square root of variance — returns spread in the same unit as data.
+   Formula: σ = √variance
+────────────────────────────────────────────────────────────────── */
+function stdDev(arr) {
+  return parseFloat(Math.sqrt(variance(arr)).toFixed(2));
+}
+
+/* ── corrInterpretation(r) ────────────────────────────────────────
+   Maps a Pearson r to a plain-English label.
+   Strength: |r|≥0.7 Strong | |r|≥0.4 Moderate | else Weak
+   Direction: r>0 Positive | r<0 Negative | r=0 Neutral
+────────────────────────────────────────────────────────────────── */
+function corrInterpretation(r) {
+  const abs = Math.abs(r);
+  const strength  = abs >= 0.7 ? 'Strong' : abs >= 0.4 ? 'Moderate' : 'Weak';
+  const direction = r > 0 ? 'Positive' : r < 0 ? 'Negative' : 'Neutral';
+  return strength + ' ' + direction + ' Correlation';
+}
+
+
 </script>
 </body>
 </html>
