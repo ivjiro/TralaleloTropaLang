@@ -290,5 +290,179 @@
   </div>
 
   <div class="pagination" id="paginationBar"></div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────
+  let originalData = [];
+  let currentData  = [];
+  let headers      = [];
+  let sortKey      = null;
+  let sortDir      = 1;
+  let currentPage  = 1;
+
+  const PASS_KEYWORDS = ['pass', 'passed', 'yes', '1', 'good', 'a', 'b'];
+
+  // ── CSV Parser ─────────────────────────────────────────────
+  // Handles quoted fields that may contain commas.
+  function parseCSV(text) {
+    const lines = text.trim().split(/\r?\n/);
+    headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+    return lines.slice(1).filter(l => l.trim()).map(line => {
+      const values = [];
+      let cur = '', inQuote = false;
+
+      for (const ch of line) {
+        if (ch === '"') {
+          inQuote = !inQuote;
+        } else if (ch === ',' && !inQuote) {
+          values.push(cur.trim());
+          cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      values.push(cur.trim());
+
+      const obj = {};
+      headers.forEach((h, i) => {
+        let v = (values[i] || '').replace(/^"|"$/g, '');
+        obj[h] = (!isNaN(v) && v !== '') ? Number(v) : v;
+      });
+      return obj;
+    });
+  }
+
+  // ── Helpers ────────────────────────────────────────────────
+  function isNumericCol(key) {
+    return originalData.slice(0, 20).every(r => typeof r[key] === 'number' || r[key] === '');
+  }
+
+  // ── Stats bar ──────────────────────────────────────────────
+  function updateStats() {
+    const numericCols = headers.filter(isNumericCol);
+    const stats = [
+      `<div class="stat">Total rows <strong>${originalData.length.toLocaleString()}</strong></div>`,
+      `<div class="stat">Filtered <strong>${currentData.length.toLocaleString()}</strong></div>`,
+      `<div class="stat">Columns <strong>${headers.length}</strong></div>`,
+    ];
+
+    if (numericCols.length > 0) {
+      const col  = numericCols[numericCols.length - 1];
+      const vals = currentData.map(r => r[col]).filter(v => typeof v === 'number');
+      if (vals.length) {
+        const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+        stats.push(`<div class="stat">Avg ${col} <strong>${avg}</strong></div>`);
+      }
+    }
+
+    document.getElementById('statBar').innerHTML = stats.join('');
+  }
+
+  // ── Render Table ───────────────────────────────────────────
+  function renderTable() {
+    const rowsPerPage = parseInt(document.getElementById('rowCount').value);
+    const totalPages  = Math.max(1, Math.ceil(currentData.length / rowsPerPage));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start    = (currentPage - 1) * rowsPerPage;
+    const pageData = currentData.slice(start, start + rowsPerPage);
+
+    // Header
+    document.getElementById('tableHead').innerHTML =
+      '<tr>' +
+      headers.map(h => {
+        const cls  = sortKey === h ? (sortDir === 1 ? 'asc' : 'desc') : '';
+        const icon = sortKey === h ? (sortDir === 1 ? '↑' : '↓') : '⬍';
+        return `<th class="${cls}" onclick="sortData('${h}')">${h} <i class="sort-icon">${icon}</i></th>`;
+      }).join('') +
+      '</tr>';
+
+    // Body
+    if (!pageData.length) {
+      document.getElementById('tableBody').innerHTML =
+        `<tr><td colspan="${headers.length}" class="empty">No matching rows found</td></tr>`;
+    } else {
+      document.getElementById('tableBody').innerHTML = pageData.map(row =>
+        '<tr>' +
+        headers.map(h => {
+          const v   = row[h];
+          const num = typeof v === 'number';
+
+          // Badge for pass/fail-style string columns
+          if (!num && typeof v === 'string' && v.length < 12) {
+            const lv = v.toLowerCase();
+            if (['pass', 'fail', 'passed', 'failed', 'yes', 'no'].includes(lv)) {
+              const isPass = PASS_KEYWORDS.includes(lv);
+              return `<td><span class="badge ${isPass ? 'badge-pass' : 'badge-fail'}">${v}</span></td>`;
+            }
+          }
+
+          return `<td class="${num ? 'numeric' : ''}">${(v === '' || v === undefined) ? '—' : v}</td>`;
+        }).join('') +
+        '</tr>'
+      ).join('');
+    }
+
+    // Pagination bar
+    const showing = Math.min(start + rowsPerPage, currentData.length);
+    const pageBtns = Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+      const p = totalPages <= 7 ? i + 1 : (currentPage <= 4 ? i + 1 : currentPage - 3 + i);
+      if (p < 1 || p > totalPages) return '';
+      return `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`;
+    }).join('');
+
+    document.getElementById('paginationBar').innerHTML =
+      `<span>Showing ${start + 1}–${showing} of ${currentData.length.toLocaleString()}</span>
+       <div class="page-btns">
+         <button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>
+         ${pageBtns}
+         <button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>
+       </div>`;
+
+    updateStats();
+  }
+
+  // ── Pagination ─────────────────────────────────────────────
+  function goPage(p) {
+    const rowsPerPage = parseInt(document.getElementById('rowCount').value);
+    const totalPages  = Math.max(1, Math.ceil(currentData.length / rowsPerPage));
+    currentPage = Math.max(1, Math.min(p, totalPages));
+    renderTable();
+  }
+
+  // ── Filter ─────────────────────────────────────────────────
+  function filterData() {
+    const search     = document.getElementById('search').value.toLowerCase();
+    const col        = document.getElementById('colFilter').value;
+    const searchCols = col ? [col] : headers;
+
+    currentData = originalData.filter(row =>
+      searchCols.some(h => String(row[h]).toLowerCase().includes(search))
+    );
+
+    currentPage = 1;
+    renderTable();
+  }
+
+  // ── Sort ───────────────────────────────────────────────────
+  function sortData(key) {
+    if (sortKey === key) {
+      sortDir *= -1;
+    } else {
+      sortKey = key;
+      sortDir = 1;
+    }
+
+    currentData.sort((a, b) => {
+      const av = a[key], bv = b[key];
+      if (av < bv) return -1 * sortDir;
+      if (av > bv) return  1 * sortDir;
+      return 0;
+    });
+
+    renderTable();
+  }
+</script>
 </body>
 </html>
