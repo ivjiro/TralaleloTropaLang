@@ -1808,6 +1808,31 @@ function buildStats() {
   }).join('');
 
 }
+
+/* ════════════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════════════ */
+function init() {
+  const allData = parseCSV(EMBEDDED_CSV);
+
+  // ── Random sample of 400 (without replacement, seeded shuffle) ──
+  const SAMPLE_SIZE = 400;
+  const shuffled = [...allData].sort(() => Math.random() - 0.5);
+  originalData = shuffled.slice(0, SAMPLE_SIZE);
+  currentData  = [...originalData];
+
+  // Detect numeric headers (needed for scatter dropdowns)
+  if (originalData.length) {
+    numericHeaders = headers.filter(h => typeof originalData[0][h] === 'number');
+  }
+
+  document.getElementById('colFilter').innerHTML =
+    '<option value="">All columns</option>' +
+    headers.map(h => `<option value="${h}">${h}</option>`).join('');
+
+  renderTable();
+
+  
 </script>
 </body>
 </html>
