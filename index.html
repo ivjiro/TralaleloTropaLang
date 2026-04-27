@@ -291,6 +291,113 @@
 
   <div class="pagination" id="paginationBar"></div>
 
+  <!-- ═══════════════════════════════════════════════════════════════
+     STUDENT 3 (VILLAFLORES) CONTRIBUTION — Statistical Analysis Engine
+═══════════════════════════════════════════════════════════════════ -->
+
+<div id="statsSection" style="display:none; margin-top: 2rem;">
+
+  <h2 style="font-size:16px; font-weight:500; margin-bottom:1rem; color:var(--color-text-primary);">
+    Statistical Analysis
+    <span style="font-size:11px; font-weight:400; color:var(--color-text-tertiary); margin-left:8px;">(Student 3 · feature/statistics)</span>
+  </h2>
+
+  <!-- Summary Stat Cards -->
+  <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:1rem;">
+
+    <div style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:14px; text-align:center;">
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;">Mean Score</div>
+      <div id="statMean" style="font-size:1.5rem; font-weight:600; color:var(--color-text-primary);">—</div>
+    </div>
+
+    <div style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:14px; text-align:center;">
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;">Median Score</div>
+      <div id="statMedian" style="font-size:1.5rem; font-weight:600; color:var(--color-text-primary);">—</div>
+    </div>
+
+    <div style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:14px; text-align:center;">
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;">Std Deviation</div>
+      <div id="statStdDev" style="font-size:1.5rem; font-weight:600; color:var(--color-text-primary);">—</div>
+    </div>
+
+    <div style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:14px; text-align:center;">
+      <div style="font-size:11px; color:var(--color-text-tertiary); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;">Mode</div>
+      <div id="statMode" style="font-size:1.5rem; font-weight:600; color:var(--color-text-primary);">—</div>
+    </div>
+
+  </div>
+
+  <!-- Descriptive + Regression Panels -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:2rem;">
+
+    <div style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:16px;">
+      <div style="font-size:11px; color:var(--color-text-tertiary); text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px;">Descriptive Statistics</div>
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <tbody>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Count (n)</td>
+            <td style="padding:7px 0; text-align:right;"><span id="dCount" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Min</td>
+            <td style="padding:7px 0; text-align:right;"><span id="dMin" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Max</td>
+            <td style="padding:7px 0; text-align:right;"><span id="dMax" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Range</td>
+            <td style="padding:7px 0; text-align:right;"><span id="dRange" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Variance (σ²)</td>
+            <td style="padding:7px 0; text-align:right;"><span id="dVariance" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr>
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Std Dev (σ)</td>
+            <td style="padding:7px 0; text-align:right;"><span id="dStdDev" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:16px;">
+      <div style="font-size:11px; color:var(--color-text-tertiary); text-transform:uppercase; letter-spacing:.5px; margin-bottom:12px;">Correlation &amp; Regression</div>
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <tbody>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Pearson r</td>
+            <td style="padding:7px 0; text-align:right;"><span id="rPearson" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Interpretation</td>
+            <td style="padding:7px 0; text-align:right;"><span id="rInterp" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Slope (m)</td>
+            <td style="padding:7px 0; text-align:right;"><span id="rSlope" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Intercept (b)</td>
+            <td style="padding:7px 0; text-align:right;"><span id="rIntercept" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:7px 0; color:var(--color-text-secondary);">R² (fit quality)</td>
+            <td style="padding:7px 0; text-align:right;"><span id="rSquared" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+          <tr>
+            <td style="padding:7px 0; color:var(--color-text-secondary);">Equation</td>
+            <td style="padding:7px 0; text-align:right;"><span id="rEquation" style="color:var(--color-info-text);">—</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div><!-- /statsSection -->
+
 <script>
   // ── State ──────────────────────────────────────────────────
   let originalData = [];
