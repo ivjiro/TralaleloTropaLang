@@ -259,6 +259,36 @@
     <small>Click to browse or drag and drop</small>
   </label>
 </div>
+<!-- Viewer (hidden until CSV is loaded) -->
+<div id="viewerSection" style="display:none;">
+  <div class="stat-bar" id="statBar"></div>
 
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search" placeholder="Search all columns…">
+    </div>
+    <select id="colFilter">
+      <option value="">All columns</option>
+    </select>
+    <select id="rowCount">
+      <option value="10">10 rows</option>
+      <option value="25" selected>25 rows</option>
+      <option value="50">50 rows</option>
+      <option value="100">100 rows</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="pagination" id="paginationBar"></div>
 </body>
 </html>
