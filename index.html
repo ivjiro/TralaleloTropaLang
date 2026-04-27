@@ -1759,6 +1759,55 @@ function buildStats() {
   const minV  = Math.min(...hsc);
   const maxV  = Math.max(...hsc);
   const skew  = sSkewness(hsc);
+
+  document.getElementById('kMean').textContent   = mu.toFixed(2);
+  document.getElementById('kMedian').textContent = med.toFixed(2);
+  document.getElementById('kStdDev').textContent = sd.toFixed(2);
+  document.getElementById('kMode').textContent   = mo;
+
+  document.getElementById('pCount').textContent    = hsc.length;
+  document.getElementById('pMin').textContent      = minV.toFixed(2);
+  document.getElementById('pMax').textContent      = maxV.toFixed(2);
+  document.getElementById('pRange').textContent    = (maxV-minV).toFixed(2);
+  document.getElementById('pVariance').textContent = vari.toFixed(4);
+  document.getElementById('pStdDev').textContent   = sd.toFixed(4);
+  document.getElementById('pSkew').textContent     = skew.toFixed(4) + (skew < 0 ? ' (left)' : ' (right)');
+
+  const reg = sLinReg(hours, hsc);
+  const r   = reg.r;
+  document.getElementById('pPearson').textContent   = r.toFixed(4);
+  const abs = Math.abs(r);
+  const strength = abs >= 0.7 ? 'Strong' : abs >= 0.4 ? 'Moderate' : 'Weak';
+  const dir      = r > 0 ? 'Positive' : 'Negative';
+  document.getElementById('pInterp').textContent    = `${strength} ${dir}`;
+  document.getElementById('pSlope').textContent     = reg.slope.toFixed(4);
+  document.getElementById('pIntercept').textContent = reg.intercept.toFixed(4);
+  document.getElementById('pR2').textContent        = (r*r).toFixed(4);
+  const sign = reg.intercept >= 0 ? '+' : '-';
+  document.getElementById('pEq').textContent =
+    `HSC = ${reg.slope.toFixed(3)} × hours ${sign} ${Math.abs(reg.intercept).toFixed(3)}`;
+
+  const corrClass = abs >= 0.4 ? 'corr-positive' : 'corr-moderate';
+  document.getElementById('corrBadge').innerHTML =
+    `<span class="corr-badge ${corrClass}">r = ${r.toFixed(4)} — ${strength} ${dir} Correlation</span>`;
+
+  const bands = [
+    { label: '5.0 (Perfect)',  range: [4.95, 5.01], color: ACCENT  },
+    { label: '4.5 – 4.99',    range: [4.5,  4.95],  color: ACCENT4 },
+    { label: '4.0 – 4.49',    range: [4.0,  4.5],   color: ACCENT2 },
+    { label: '3.5 – 3.99',    range: [3.5,  4.0],   color: ACCENT3 },
+    { label: '3.0 – 3.49',    range: [3.0,  3.5],   color: DANGER  },
+  ];
+  document.getElementById('distBars').innerHTML = bands.map(b => {
+    const cnt = hsc.filter(v => v >= b.range[0] && v < b.range[1]).length;
+    const pct = ((cnt / hsc.length) * 100).toFixed(1);
+    return `<div class="dist-item">
+      <div class="dist-label"><span>${b.label}</span><span>${cnt} (${pct}%)</span></div>
+      <div class="dist-track"><div class="dist-fill" style="width:${pct}%;background:${b.color}"></div></div>
+    </div>`;
+  }).join('');
+
+}
 </script>
 </body>
 </html>
